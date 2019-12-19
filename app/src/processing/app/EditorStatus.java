@@ -25,6 +25,7 @@ package processing.app;
 
 import processing.app.helpers.OSUtils;
 import cc.arduino.CompilerProgressListener;
+import processing.app.javax.swing.filechooser.SaveErrorMessage;
 
 import javax.swing.*;
 import java.awt.*;
@@ -90,7 +91,8 @@ public class EditorStatus extends JPanel {
   private JTextField editField;
   private JProgressBar progressBar;
   private JButton copyErrorButton;
-  
+  private JButton exportErrorButton;
+  private SaveErrorMessage sem;
   private ArrayList<CompilerProgressListener> compilerProgressListeners;
 
   public EditorStatus(Editor editor) {
@@ -123,6 +125,7 @@ public class EditorStatus extends JPanel {
     editField.setVisible(false);
     progressBar.setVisible(false);
     copyErrorButton.setVisible(false);
+    exportErrorButton.setVisible(false);
     message = NO_MESSAGE;
   }
 
@@ -131,6 +134,7 @@ public class EditorStatus extends JPanel {
     this.message = message;
     if (copyErrorButton != null) {
       copyErrorButton.setVisible(false);
+      exportErrorButton.setVisible(false);
     }
     repaint();
   }
@@ -140,6 +144,7 @@ public class EditorStatus extends JPanel {
     this.message = message;
     if (copyErrorButton != null) {
       copyErrorButton.setVisible(true);
+      exportErrorButton.setVisible(true);
     }
     repaint();
   }
@@ -172,6 +177,7 @@ public class EditorStatus extends JPanel {
     progressBar.setIndeterminate(false);
     progressBar.setVisible(true);
     copyErrorButton.setVisible(false);
+    exportErrorButton.setVisible(false);
     setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
     repaint();
   }
@@ -336,6 +342,22 @@ public class EditorStatus extends JPanel {
     progressBar.setBorderPainted(true);
     add(progressBar);
     progressBar.setVisible(false);
+    exportErrorButton = new JButton(tr("Export error messages"));
+    add(exportErrorButton);
+    exportErrorButton.setVisible(false);
+    exportErrorButton.addActionListener(e -> {
+      String message1 = "";
+      message1 += tr("Arduino: ") + BaseNoGui.VERSION_NAME_LONG + " (" + System.getProperty("os.name") + "), ";
+      message1 += tr("Board: ") + "\"" + BaseNoGui.getBoardPreferences().get("name") + "\"\n\n";
+      message1 += editor.console.getText();
+      if (!(PreferencesData.getBoolean("build.verbose"))) {
+        message1 += "\n\n";
+        message1 += tr("This report would have more information with\n" +
+          "\"Show verbose output during compilation\"\n" +
+          "option enabled in File -> Preferences.\n");
+      }
+      sem = new SaveErrorMessage(message1, exportErrorButton);
+    });
 
     copyErrorButton = new JButton(tr("Copy error messages"));
     add(copyErrorButton);
@@ -348,8 +370,8 @@ public class EditorStatus extends JPanel {
       if (!(PreferencesData.getBoolean("build.verbose"))) {
         message1 += "\n\n";
         message1 += tr("This report would have more information with\n" +
-                       "\"Show verbose output during compilation\"\n" +
-                       "option enabled in File -> Preferences.\n");
+          "\"Show verbose output during compilation\"\n" +
+          "option enabled in File -> Preferences.\n");
       }
       Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
       StringSelection data = new StringSelection(message1);
@@ -389,6 +411,10 @@ public class EditorStatus extends JPanel {
     Dimension copyErrorButtonSize = copyErrorButton.getPreferredSize();
     copyErrorButton.setLocation(sizeW - copyErrorButtonSize.width - 5, top);
     copyErrorButton.setSize(copyErrorButtonSize.width, Preferences.BUTTON_HEIGHT);
+
+    Dimension exportErrorButtonSize = exportErrorButton.getPreferredSize();
+    exportErrorButton.setLocation(sizeW - exportErrorButtonSize.width - 220, top);
+    exportErrorButton.setSize(exportErrorButtonSize.width, Preferences.BUTTON_HEIGHT);
   }
 
   public Dimension getPreferredSize() {
@@ -406,11 +432,11 @@ public class EditorStatus extends JPanel {
   public boolean isErr() {
     return mode == ERR;
   }
-  
+
   public void addCompilerProgressListener(CompilerProgressListener listener){
     compilerProgressListeners.add(listener);
   }
-  
+
   public ArrayList<CompilerProgressListener> getCompilerProgressListeners(){
     return compilerProgressListeners;
   }
